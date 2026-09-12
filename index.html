@@ -30,7 +30,8 @@ body{font-family:Arial,sans-serif;margin:0;background:#f4f6f8;color:#222}header{
   <div id="loginMsg"></div>
 </section>
 <section id="signupCard" class="card"><h2>Create Student Account</h2><div class="grid"><div><label>First name</label><input id="signupFirst"></div><div><label>Last name</label><input id="signupLast"></div></div><label>Email</label><input id="signupEmail" type="email"><label>Password</label><input id="signupPassword" type="password"><button onclick="signUpStudent()">Create Account</button><div id="signupMsg"></div></section>
-<div id="studentApp" class="hidden"><div class="tabs"><button onclick="showStudent('studenthome')">My Classes</button><button onclick="showStudent('joinclass')">Join a Class</button><button class="gray" onclick="signOut()">Sign Out</button></div><section id="studenthome" class="card"><h2>My Classes</h2><div id="myClasses"></div></section><section id="joinclass" class="card hidden"><h2>Join a Class</h2><label>Enrollment code</label><input id="enrollmentCode"><button onclick="joinClass()">Join Class</button><div id="joinMsg"></div></section></div>
+<div id="studentApp" class="hidden"><div class="tabs"><button onclick="showStudent('studenthome')">My Classes</button><button onclick="showStudent('joinclass')">Join a Class</button><button class="gray" onclick="signOut()">Sign Out</button></div><section id="studenthome" class="card"><h2>My Classes</h2><div id="myClasses"></div></section><section id="joinclass" class="card hidden"><h2>Join a Class</h2><label>Enrollment code</label><input id="enrollmentCode"><button onclick="joinClass()">Join Class</button><div id="joinMsg"></div></section>
+<section id="studentclass" class="card hidden"><button class="gray" onclick="showStudent('studenthome')">← My Classes</button><h2 id="studentClassTitle">Class</h2><p>Enter the temporary session code shown by your instructor.</p><label>Session code</label><input id="studentSessionCode" maxlength="4" placeholder="4-digit code"><button onclick="joinTodaySession()">Join Session</button><div id="studentSessionMsg"></div></section></div>
 <div id="app" class="hidden">
   <div class="tabs">
     <button onclick="show('home')">My Courses</button>
@@ -41,7 +42,7 @@ body{font-family:Arial,sans-serif;margin:0;background:#f4f6f8;color:#222}header{
     <button class="gray" onclick="signOut()">Sign Out</button>
   </div>
 
-  <section id="home" class="card"><h2>My Courses</h2><p>Your courses are entered by you. Sections can be changed each semester without rebuilding the course or Question Bank.</p><div id="courses"></div></section>
+  <section id="home" class="card"><h2>My Courses</h2><p>Your courses are entered by you. Click a section to manage its classroom session.</p><div id="courses"></div><div id="sessionPanel"></div></section>
 
   <section id="addcourse" class="card hidden"><h2>Add a Course</h2><label>Course code</label><input id="ccode" placeholder="CHEM 1311"><label>Course name</label><input id="cname" placeholder="General Chemistry I"><label>Semester</label><input id="semester" placeholder="Fall 2026"><button onclick="addCourse()">Add Course</button><div id="coursemsg"></div></section>
 
@@ -114,7 +115,7 @@ async function loadAll() {
 function renderCourses() {
   const el=document.getElementById("courses");
   el.innerHTML = coursesData.length ? coursesData.map(c => {
-    const offerings=(c.course_offerings||[]).map(o=>`<div><p><b>${esc(o.semester)}</b></p>${(o.sections||[]).length ? o.sections.map(s=>`<span class="section">${esc(s.section_code)} · Enrollment: <span class="code">${esc(s.enrollment_code)}</span></span>`).join("") : '<span class="small">No sections yet.</span>'}</div>`).join("");
+    const offerings=(c.course_offerings||[]).map(o=>`<div><p><b>${esc(o.semester)}</b></p>${(o.sections||[]).length ? o.sections.map(s=>`<button class="section" style="border:0;cursor:pointer;color:#222" onclick="openInstructorSection('${s.id}','${esc(c.course_code)}','${esc(s.section_code)}')">${esc(s.section_code)} · Enrollment: <span class="code">${esc(s.enrollment_code)}</span></button>`).join("") : '<span class="small">No sections yet.</span>'}</div>`).join("");
     return `<div class="course"><h3>${esc(c.course_code)} — ${esc(c.course_name)}</h3>${offerings||'<p class="small">No semester offerings yet.</p>'}</div>`;
   }).join("") : "<p>No courses yet. Click Add Course.</p>";
 }
@@ -170,6 +171,51 @@ async function saveQuestion() {
   await loadAll();
 }
 
+
+let selectedInstructorSection=null;
+let selectedStudentSection=null;
+let activeInstructorSession=null;
+
+function openInstructorSection(sectionId,courseCode,sectionCode){
+ selectedInstructorSection={sectionId,courseCode,sectionCode};
+ sessionPanel.innerHTML=`<div class="course"><h3>${esc(courseCode)} — ${esc(sectionCode)}</h3><p>Start a classroom session for this section.</p><button onclick="startSession()">Start Session</button><div id="instructorSessionMsg"></div></div>`;
+ sessionPanel.scrollIntoView({behavior:"smooth"});
+}
+async function startSession(){
+ const box=document.getElementById("instructorSessionMsg");
+ box.innerHTML="<p>Starting session...</p>";
+ const {data,error}=await sb.rpc("start_class_session",{p_section_id:selectedInstructorSection.sectionId});
+ if(error){box.innerHTML=`<div class="danger">${esc(error.message)}</div>`;return}
+ const s=Array.isArray(data)?data[0]:data;
+ activeInstructorSession=s;
+ box.innerHTML=`<div class="ok"><h3>Session ${esc(s.session_number)}</h3><p>${esc(s.session_date)}</p><p>Session Code: <span class="code" style="font-size:24px">${esc(s.session_code)}</span></p><p>Status: <b>${esc(s.status)}</b></p><button onclick="endSession()">End Session</button></div>`;
+}
+async function endSession(){
+ if(!activeInstructorSession)return;
+ const {error}=await sb.rpc("end_class_session",{p_session_id:activeInstructorSession.session_id});
+ const box=document.getElementById("instructorSessionMsg");
+ if(error){box.innerHTML=`<div class="danger">${esc(error.message)}</div>`;return}
+ box.innerHTML="<div class='ok'>Session ended.</div>"; activeInstructorSession=null;
+}
+function openStudentClass(sectionId,courseCode,sectionCode){
+ selectedStudentSection={sectionId,courseCode,sectionCode};
+ studentClassTitle.textContent=`${courseCode} — ${sectionCode}`;
+ studentSessionCode.value=""; studentSessionMsg.innerHTML="";
+ showStudent("studentclass");
+}
+async function joinTodaySession(){
+ studentSessionMsg.innerHTML="";
+ const code=studentSessionCode.value.trim();
+ if(!code){studentSessionMsg.innerHTML="<div class='ok'>Enter the session code.</div>";return}
+ const {data,error}=await sb.rpc("join_class_session",{p_session_code:code});
+ if(error){studentSessionMsg.innerHTML=`<div class="danger">${esc(error.message)}</div>`;return}
+ const s=Array.isArray(data)?data[0]:data;
+ if(!s || s.section_id!==selectedStudentSection.sectionId){
+   studentSessionMsg.innerHTML="<div class='danger'>This session code does not belong to this class.</div>";return;
+ }
+ studentSessionMsg.innerHTML=`<div class="ok"><h3>Joined Session ${esc(s.session_number)}</h3><p>${esc(s.course_code)} — ${esc(s.section_code)}</p><p>${esc(s.session_date)}</p><p>Waiting for the instructor to open a question.</p></div>`;
+}
+
 async function signUpStudent(){
  signupMsg.innerHTML=""; const first=signupFirst.value.trim(),last=signupLast.value.trim(),email=signupEmail.value.trim(),password=signupPassword.value;
  if(!first||!last||!email||!password){signupMsg.innerHTML="<div class='ok'>Please complete all fields.</div>";return}
@@ -195,7 +241,7 @@ async function loadMyClasses(){
      el.innerHTML="<p>You have not joined a class yet. If you just joined one, click My Classes again.</p>";
      return;
    }
-   el.innerHTML=classes.map(c=>`<div class="course"><h3>${esc(c.course_code)} — ${esc(c.course_name)}</h3><p><b>${esc(c.semester)}</b></p><p>Section: <span class="section">${esc(c.section_code)}</span></p></div>`).join("");
+   el.innerHTML=classes.map(c=>`<div class="course" style="cursor:pointer" onclick="openStudentClass('${c.section_id}','${esc(c.course_code)}','${esc(c.section_code)}')"><h3>${esc(c.course_code)} — ${esc(c.course_name)}</h3><p><b>${esc(c.semester)}</b></p><p>Section: <span class="section">${esc(c.section_code)}</span></p><p class="small">Click to enter this class.</p></div>`).join("");
  }catch(err){
    console.error("ChemPoll My Classes error:",err);
    el.innerHTML=`<div class="danger"><b>Could not load My Classes.</b><br>${esc(err.message||String(err))}</div>`;
