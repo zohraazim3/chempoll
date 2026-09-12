@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ChemPoll V2D</title>
+<style>
+body{font-family:Arial,sans-serif;margin:0;background:#f4f6f8;color:#222}header{background:#243447;color:#fff;padding:20px 24px}.wrap{max-width:1150px;margin:22px auto;padding:0 16px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}button{border:0;border-radius:6px;padding:10px 14px;background:#2f6fed;color:#fff;cursor:pointer}button.gray{background:#e3e7eb;color:#222}.card{background:#fff;border-radius:10px;padding:20px;margin-bottom:16px;box-shadow:0 2px 8px #0001}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}.hidden{display:none}input,select,textarea{width:100%;box-sizing:border-box;padding:9px;margin:5px 0 12px;border:1px solid #cbd1d8;border-radius:6px}.course{border:1px solid #ddd;border-radius:8px;padding:14px;margin:10px 0}.section{display:inline-block;background:#edf2ff;padding:5px 9px;border-radius:14px;margin:3px;font-size:13px}.ok{background:#eaf7ed;padding:10px;border-radius:6px;margin-top:10px}table{width:100%;border-collapse:collapse}th,td{padding:9px;border-bottom:1px solid #ddd;text-align:left}
+
+.authbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.authbar input{width:auto;min-width:220px;margin:0}
+.authbar button{margin:0}
+.status{font-size:14px;margin-top:8px}
+.danger{background:#fff0f0;padding:10px;border-radius:6px;margin-top:10px}
+.code{font-family:monospace;font-weight:bold;letter-spacing:1px}
+.small{font-size:13px;color:#555}
+</style>
+</head><body>
+<header>
+  <h1>ChemPoll V2D</h1>
+  <div>Instructor courses, sections, student enrollment, and reusable Question Bank</div>
+  <div id="authStatus" class="status">Not signed in</div>
+</header>
+
+<div class="wrap">
+<section id="loginCard" class="card">
+  <h2>Sign In</h2>
+  <div class="authbar">
+    <input id="loginEmail" type="email" placeholder="Email">
+    <input id="loginPassword" type="password" placeholder="Password">
+    <button onclick="signIn()">Sign In</button>
+  </div>
+  <div id="loginMsg"></div>
+</section>
+<section id="signupCard" class="card"><h2>Create Student Account</h2><div class="grid"><div><label>First name</label><input id="signupFirst"></div><div><label>Last name</label><input id="signupLast"></div></div><label>Email</label><input id="signupEmail" type="email"><label>Password</label><input id="signupPassword" type="password"><button onclick="signUpStudent()">Create Account</button><div id="signupMsg"></div></section>
+<div id="studentApp" class="hidden"><div class="tabs"><button onclick="showStudent('studenthome')">My Classes</button><button onclick="showStudent('joinclass')">Join a Class</button><button class="gray" onclick="signOut()">Sign Out</button></div><section id="studenthome" class="card"><h2>My Classes</h2><div id="myClasses"></div></section><section id="joinclass" class="card hidden"><h2>Join a Class</h2><label>Enrollment code</label><input id="enrollmentCode"><button onclick="joinClass()">Join Class</button><div id="joinMsg"></div></section>
+<section id="studentclass" class="card hidden"><button class="gray" onclick="showStudent('studenthome')">← My Classes</button><h2 id="studentClassTitle">Class</h2><p>Enter the temporary session code shown by your instructor.</p><label>Session code</label><input id="studentSessionCode" maxlength="4" placeholder="4-digit code"><button onclick="joinTodaySession()">Join Session</button><div id="studentSessionMsg"></div></section></div>
+<div id="app" class="hidden">
+  <div class="tabs">
+    <button onclick="show('home')">My Courses</button>
+    <button onclick="show('addcourse')">Add Course</button>
+    <button onclick="show('addsection')">Add Section</button>
+    <button onclick="show('bank')">Question Bank</button>
+    <button onclick="show('newq')">Create Question</button>
+    <button class="gray" onclick="signOut()">Sign Out</button>
+  </div>
+
+  <section id="home" class="card"><h2>My Courses</h2><p>Your courses are entered by you. Click a section to manage its classroom session.</p><div id="courses"></div><div id="sessionPanel"></div></section>
+
+  <section id="addcourse" class="card hidden"><h2>Add a Course</h2><label>Course code</label><input id="ccode" placeholder="CHEM 1311"><label>Course name</label><input id="cname" placeholder="General Chemistry I"><label>Semester</label><input id="semester" placeholder="Fall 2026"><button onclick="addCourse()">Add Course</button><div id="coursemsg"></div></section>
+
+  <section id="addsection" class="card hidden"><h2>Add a Section</h2><label>Course / Semester</label><select id="courseSelect"></select><label>Section</label><input id="sec" placeholder="01P"><button onclick="addSection()">Add Section</button><div id="secmsg"></div></section>
+
+  <section id="bank" class="card hidden"><h2>Question Bank</h2><input id="search" placeholder="Search course, chapter, title, tags, or question" oninput="renderBank()"><div id="banklist"></div></section>
+
+  <section id="newq" class="card hidden"><h2>Create a Reusable Question</h2><div class="grid"><div><label>Course</label><select id="qcourse"></select></div><div><label>Chapter</label><input id="chapter" placeholder="Chapter 5"></div><div><label>Tags</label><input id="tags" placeholder="stoichiometry, limiting reagent"></div></div><label>Question title</label><input id="qtitle"><label>Full question</label><textarea id="qtext"></textarea><div class="grid"><div>A <input id="qa"></div><div>B <input id="qb"></div><div>C <input id="qc"></div><div>D <input id="qd"></div></div><div class="grid"><div><label>Correct answer</label><select id="correct"><option>A</option><option>B</option><option>C</option><option>D</option></select></div><div><label>Participation points</label><input id="pp" type="number" value="1" min="0"></div><div><label>Performance points</label><input id="rp" type="number" value="1" min="0"></div></div><button onclick="saveQuestion()">Save Question</button><div id="qmsg"></div></section>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://mrgduyczzgfzibfcqowx.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_zzsHzPhhkPrb_5JQlPbGsg_fq4soi6x';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let coursesData = [];
+let bankData = [];
+let currentProfile = null;
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) await enterApp(session.user);
+}
+async function signIn() {
+  loginMsg.innerHTML = "";
+  const email = loginEmail.value.trim(), password = loginPassword.value;
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) { loginMsg.innerHTML = `<div class="danger">${esc(error.message)}</div>`; return; }
+  await enterApp(data.user);
+}
+async function signOut() {
+  await sb.auth.signOut();
+  currentProfile = null; coursesData=[]; bankData=[];
+  app.classList.add("hidden"); studentApp.classList.add("hidden"); loginCard.classList.remove("hidden"); signupCard.classList.remove("hidden");
+  authStatus.textContent="Not signed in";
+}
+async function enterApp(user) {
+  const { data: profile, error } = await sb.from("profiles").select("id,first_name,last_name,email,role").eq("id",user.id).single();
+  if (error || !profile) { loginMsg.innerHTML=`<div class="danger">Profile could not be loaded.</div>`; return; }
+  currentProfile=profile;
+  authStatus.textContent=`Signed in: ${profile.first_name} ${profile.last_name} (${profile.role})`;
+  loginCard.classList.add("hidden"); signupCard.classList.add("hidden");
+  if(profile.role==="instructor"){studentApp.classList.add("hidden");app.classList.remove("hidden");await loadAll();show("home");}
+  else{app.classList.add("hidden");studentApp.classList.remove("hidden");await loadMyClasses();showStudent("studenthome");}
+}
+function show(id) {
+  document.querySelectorAll("#app section").forEach(x=>x.classList.add("hidden"));
+  document.getElementById(id).classList.remove("hidden");
+  refreshSelects();
+  if(id==="home") renderCourses();
+  if(id==="bank") renderBank();
+}
+async function loadAll() {
+  const { data: cs, error: ce } = await sb.from("courses")
+    .select("id,course_code,course_name,course_offerings(id,semester,is_active,sections(id,section_code,enrollment_code))")
+    .order("course_code");
+  if (ce) throw ce;
+  coursesData = cs || [];
+  const { data: qs, error: qe } = await sb.from("question_bank")
+    .select("id,course_id,chapter,title,question_text,choice_a,choice_b,choice_c,choice_d,correct_answer,participation_points,performance_points,tags, courses(course_code)")
+    .order("created_at", {ascending:false});
+  if (qe) throw qe;
+  bankData = qs || [];
+  refreshSelects(); renderCourses(); renderBank();
+}
+function renderCourses() {
+  const el=document.getElementById("courses");
+  el.innerHTML = coursesData.length ? coursesData.map(c => {
+    const offerings=(c.course_offerings||[]).map(o=>`<div><p><b>${esc(o.semester)}</b></p>${(o.sections||[]).length ? o.sections.map(s=>`<button class="section" style="border:0;cursor:pointer;color:#222" onclick="openInstructorSection('${s.id}','${esc(c.course_code)}','${esc(s.section_code)}')">${esc(s.section_code)} · Enrollment: <span class="code">${esc(s.enrollment_code)}</span></button>`).join("") : '<span class="small">No sections yet.</span>'}</div>`).join("");
+    return `<div class="course"><h3>${esc(c.course_code)} — ${esc(c.course_name)}</h3>${offerings||'<p class="small">No semester offerings yet.</p>'}</div>`;
+  }).join("") : "<p>No courses yet. Click Add Course.</p>";
+}
+function refreshSelects() {
+  const offerings=[];
+  coursesData.forEach(c=>(c.course_offerings||[]).forEach(o=>offerings.push({course:c,offering:o})));
+  courseSelect.innerHTML=offerings.map(x=>`<option value="${x.offering.id}">${esc(x.course.course_code)} — ${esc(x.course.course_name)} — ${esc(x.offering.semester)}</option>`).join("");
+  qcourse.innerHTML=coursesData.map(c=>`<option value="${c.id}">${esc(c.course_code)} — ${esc(c.course_name)}</option>`).join("");
+}
+async function addCourse() {
+  coursemsg.innerHTML="";
+  const code=ccode.value.trim(), name=cname.value.trim(), sem=semester.value.trim()||"Current semester";
+  if(!code||!name) {coursemsg.innerHTML="<div class='ok'>Enter both course code and name.</div>";return}
+  const {data:c,error:e}=await sb.from("courses").insert({instructor_id:currentProfile.id,course_code:code,course_name:name}).select().single();
+  if(e) {coursemsg.innerHTML=`<div class="danger">${esc(e.message)}</div>`;return}
+  const {error:e2}=await sb.from("course_offerings").insert({course_id:c.id,semester:sem});
+  if(e2) {coursemsg.innerHTML=`<div class="danger">Course created, but semester failed: ${esc(e2.message)}</div>`;return}
+  ccode.value=cname.value=semester.value="";
+  coursemsg.innerHTML="<div class='ok'>Course and semester added.</div>";
+  await loadAll();
+}
+async function addSection() {
+  secmsg.innerHTML="";
+  const offering_id=courseSelect.value, section_code=sec.value.trim();
+  if(!offering_id||!section_code) {secmsg.innerHTML="<div class='ok'>Select a course and enter a section.</div>";return}
+  const {data,error}=await sb.from("sections").insert({offering_id,section_code}).select("section_code,enrollment_code").single();
+  if(error) {secmsg.innerHTML=`<div class="danger">${esc(error.message)}</div>`;return}
+  sec.value="";
+  secmsg.innerHTML=`<div class='ok'>Section ${esc(data.section_code)} added. Enrollment code: <span class="code">${esc(data.enrollment_code)}</span></div>`;
+  await loadAll();
+}
+function renderBank() {
+  const term=(search?.value||"").toLowerCase();
+  const r=bankData.filter(q=>((q.courses?.course_code||"")+" "+(q.chapter||"")+" "+(q.tags||[]).join(" ")+" "+q.title+" "+q.question_text).toLowerCase().includes(term));
+  banklist.innerHTML=r.length?`<table><tr><th>Course</th><th>Chapter</th><th>Title</th><th>Tags</th></tr>${r.map(q=>`<tr><td>${esc(q.courses?.course_code)}</td><td>${esc(q.chapter)}</td><td><b>${esc(q.title)}</b></td><td>${esc((q.tags||[]).join(", "))}</td></tr>`).join("")}</table>`:"No questions found.";
+}
+async function saveQuestion() {
+  qmsg.innerHTML="";
+  const row={
+    course_id:qcourse.value, chapter:chapter.value.trim()||null, title:qtitle.value.trim(),
+    question_text:qtext.value.trim(), choice_a:qa.value.trim(), choice_b:qb.value.trim(),
+    choice_c:qc.value.trim(), choice_d:qd.value.trim(), correct_answer:correct.value,
+    participation_points:Number(pp.value||0), performance_points:Number(rp.value||0),
+    tags:tags.value.split(",").map(x=>x.trim()).filter(Boolean)
+  };
+  if(!row.course_id||!row.title||!row.question_text||[row.choice_a,row.choice_b,row.choice_c,row.choice_d].some(x=>!x)) {
+    qmsg.innerHTML="<div class='ok'>Please complete the question and all four choices.</div>";return;
+  }
+  const {error}=await sb.from("question_bank").insert(row);
+  if(error) {qmsg.innerHTML=`<div class="danger">${esc(error.message)}</div>`;return}
+  qtitle.value=qtext.value=chapter.value=tags.value=qa.value=qb.value=qc.value=qd.value="";
+  qmsg.innerHTML="<div class='ok'>Question saved to the reusable Question Bank.</div>";
+  await loadAll();
+}
+
+
+let selectedInstructorSection=null;
+let selectedStudentSection=null;
+let activeInstructorSession=null;
+
+function openInstructorSection(sectionId,courseCode,sectionCode){
+ selectedInstructorSection={sectionId,courseCode,sectionCode};
+ sessionPanel.innerHTML=`<div class="course"><h3>${esc(courseCode)} — ${esc(sectionCode)}</h3><p>Start a classroom session for this section.</p><button onclick="startSession()">Start Session</button><div id="instructorSessionMsg"></div></div>`;
+ sessionPanel.scrollIntoView({behavior:"smooth"});
+}
+async function startSession(){
+ const box=document.getElementById("instructorSessionMsg");
+ box.innerHTML="<p>Starting session...</p>";
+ const {data,error}=await sb.rpc("start_class_session",{p_section_id:selectedInstructorSection.sectionId});
+ if(error){box.innerHTML=`<div class="danger">${esc(error.message)}</div>`;return}
+ const s=Array.isArray(data)?data[0]:data;
+ activeInstructorSession=s;
+ box.innerHTML=`<div class="ok"><h3>Session ${esc(s.session_number)}</h3><p>${esc(s.session_date)}</p><p>Session Code: <span class="code" style="font-size:24px">${esc(s.session_code)}</span></p><p>Status: <b>${esc(s.status)}</b></p><button onclick="showSessionBank()">Add Question from Bank</button> <button onclick="endSession()">End Session</button><div id="sessionBank"></div><div id="activePoll"></div></div>`;
+}
+async function endSession(){
+ if(!activeInstructorSession)return;
+ const {error}=await sb.rpc("end_class_session",{p_session_id:activeInstructorSession.session_id});
+ const box=document.getElementById("instructorSessionMsg");
+ if(error){box.innerHTML=`<div class="danger">${esc(error.message)}</div>`;return}
+ box.innerHTML="<div class='ok'>Session ended.</div>"; activeInstructorSession=null;
+}
+function openStudentClass(sectionId,courseCode,sectionCode){
+ selectedStudentSection={sectionId,courseCode,sectionCode};
+ studentClassTitle.textContent=`${courseCode} — ${sectionCode}`;
+ studentSessionCode.value=""; studentSessionMsg.innerHTML="";
+ showStudent("studentclass");
+}
+async function joinTodaySession(){
+ studentSessionMsg.innerHTML="";
+ const code=studentSessionCode.value.trim();
+ if(!code){studentSessionMsg.innerHTML="<div class='ok'>Enter the session code.</div>";return}
+ const {data,error}=await sb.rpc("join_class_session",{p_session_code:code});
+ if(error){studentSessionMsg.innerHTML=`<div class="danger">${esc(error.message)}</div>`;return}
+ const s=Array.isArray(data)?data[0]:data;
+ if(!s || s.section_id!==selectedStudentSection.sectionId){
+   studentSessionMsg.innerHTML="<div class='danger'>This session code does not belong to this class.</div>";return;
+ }
+ studentSessionMsg.innerHTML=`<div class="ok"><h3>Joined Session ${esc(s.session_number)}</h3><p>${esc(s.course_code)} — ${esc(s.section_code)}</p><p>${esc(s.session_date)}</p><div id="studentPollArea"><p>Waiting for the instructor to open a question.</p></div></div>`; currentStudentSession=s; startStudentPolling();
+}
+
+
+let activeSessionQuestion=null, resultsTimer=null, studentPollTimer=null, currentStudentSession=null, studentAnsweredQuestion=null;
+async function showSessionBank(){
+ const el=document.getElementById("sessionBank"); if(!el)return;
+ const qs=bankData.filter(q=>q.courses?.course_code===selectedInstructorSection.courseCode);
+ el.innerHTML=qs.length?`<h4>Question Bank</h4>${qs.map(q=>`<div class="course"><b>${esc(q.title)}</b><p class="small">${esc(q.chapter||"")}</p><button onclick="addPollQuestion('${q.id}')">Add to Session</button></div>`).join("")}`:"<p>No Question Bank questions for this course. Use Create Question first.</p>";
+}
+async function addPollQuestion(qid){
+ const {data,error}=await sb.rpc("add_question_to_session",{p_session_id:activeInstructorSession.session_id,p_question_id:qid});
+ if(error){sessionBank.innerHTML+=`<div class="danger">${esc(error.message)}</div>`;return}
+ const q=bankData.find(x=>x.id===qid); activeSessionQuestion={id:data,question:q};
+ activePoll.innerHTML=`<div class="course"><h3>Next Question: ${esc(q.title)}</h3><p>${esc(q.question_text)}</p><p>A. ${esc(q.choice_a)}</p><p>B. ${esc(q.choice_b)}</p><p>C. ${esc(q.choice_c)}</p><p>D. ${esc(q.choice_d)}</p><button onclick="openPollQuestion()">Open Question</button></div>`;
+}
+async function openPollQuestion(){
+ const {error}=await sb.rpc("open_session_question",{p_session_question_id:activeSessionQuestion.id});
+ if(error){activePoll.innerHTML+=`<div class="danger">${esc(error.message)}</div>`;return}
+ activePoll.innerHTML+=`<div class="ok"><b>Question is OPEN.</b> Timer started. <button onclick="closePollQuestion()">Close Question</button><div id="liveResults"></div></div>`;
+ refreshLiveResults(); clearInterval(resultsTimer); resultsTimer=setInterval(refreshLiveResults,1500);
+}
+async function refreshLiveResults(){
+ if(!activeSessionQuestion)return; const {data,error}=await sb.rpc("get_live_poll_results",{p_session_question_id:activeSessionQuestion.id});
+ const el=document.getElementById("liveResults"); if(!el)return; if(error){el.innerHTML=`<div class="danger">${esc(error.message)}</div>`;return}
+ const r=Array.isArray(data)?data[0]:data; if(!r)return; const elapsed=r.opened_at?Math.max(0,Math.floor((Date.now()-new Date(r.opened_at).getTime())/1000)):0;
+ el.innerHTML=`<p><b>Time:</b> ${elapsed}s &nbsp; <b>Responses:</b> ${r.responses} / ${r.enrolled_students} (${r.participation_percent}%)</p><p>A — ${r.count_a} &nbsp; B — ${r.count_b} &nbsp; C — ${r.count_c} &nbsp; D — ${r.count_d}</p><p><b>Correct:</b> ${r.correct_percent}%</p>`;
+}
+async function closePollQuestion(){const {error}=await sb.rpc("close_session_question",{p_session_question_id:activeSessionQuestion.id});if(error){activePoll.innerHTML+=`<div class="danger">${esc(error.message)}</div>`;return}clearInterval(resultsTimer);await refreshLiveResults();activePoll.innerHTML+=`<div class="ok">Question closed.</div>`;}
+function startStudentPolling(){clearInterval(studentPollTimer);checkStudentPoll();studentPollTimer=setInterval(checkStudentPoll,1500);}
+async function checkStudentPoll(){
+ if(!currentStudentSession)return; const {data,error}=await sb.rpc("get_open_question_for_student",{p_session_id:currentStudentSession.session_id});
+ const el=document.getElementById("studentPollArea");if(!el)return;if(error){el.innerHTML=`<div class="danger">${esc(error.message)}</div>`;return}
+ const q=Array.isArray(data)?data[0]:data;if(!q){el.innerHTML="<p>Waiting for the instructor to open a question.</p>";return}
+ if(studentAnsweredQuestion===q.session_question_id)return;
+ el.innerHTML=`<h3>Question ${esc(q.question_number)} — ${esc(q.title)}</h3><p class="small">Choose your answer from the projected question.</p><div class="tabs"><button onclick="submitAnswer('${q.session_question_id}','A')">A</button><button onclick="submitAnswer('${q.session_question_id}','B')">B</button><button onclick="submitAnswer('${q.session_question_id}','C')">C</button><button onclick="submitAnswer('${q.session_question_id}','D')">D</button></div>`;
+}
+async function submitAnswer(qid,answer){const el=document.getElementById("studentPollArea");const {error}=await sb.rpc("submit_poll_response",{p_session_question_id:qid,p_answer:answer});if(error){el.innerHTML=`<div class="danger">${esc(error.message)}</div>`;return}studentAnsweredQuestion=qid;el.innerHTML=`<div class="ok"><b>Answer ${esc(answer)} submitted ✓</b><p>Waiting for the instructor.</p></div>`;}
+
+async function signUpStudent(){
+ signupMsg.innerHTML=""; const first=signupFirst.value.trim(),last=signupLast.value.trim(),email=signupEmail.value.trim(),password=signupPassword.value;
+ if(!first||!last||!email||!password){signupMsg.innerHTML="<div class='ok'>Please complete all fields.</div>";return}
+ const {data,error}=await sb.auth.signUp({email,password,options:{data:{first_name:first,last_name:last}}});
+ if(error){signupMsg.innerHTML=`<div class="danger">${esc(error.message)}</div>`;return}
+ if(data.session){await enterApp(data.user)}else signupMsg.innerHTML="<div class='ok'>Account created. Check your email to confirm it, then sign in.</div>";
+}
+function showStudent(id){document.querySelectorAll("#studentApp section").forEach(x=>x.classList.add("hidden"));document.getElementById(id).classList.remove("hidden");if(id==="studenthome")loadMyClasses()}
+async function joinClass(){
+ joinMsg.innerHTML="";const code=enrollmentCode.value.trim();if(!code){joinMsg.innerHTML="<div class='ok'>Enter the enrollment code.</div>";return}
+ const {error}=await sb.rpc("join_section_by_code",{p_enrollment_code:code});
+ if(error){joinMsg.innerHTML=`<div class="danger">${esc(error.message)}</div>`;return}
+ enrollmentCode.value="";joinMsg.innerHTML="<div class='ok'>Class joined successfully.</div>";await loadMyClasses();
+}
+async function loadMyClasses(){
+ const el=document.getElementById("myClasses");
+ el.innerHTML="<p>Loading your classes...</p>";
+ try{
+   const {data,error}=await sb.rpc("get_my_classes");
+   if(error) throw error;
+   const classes=Array.isArray(data)?data:[];
+   if(classes.length===0){
+     el.innerHTML="<p>You have not joined a class yet. If you just joined one, click My Classes again.</p>";
+     return;
+   }
+   el.innerHTML=classes.map(c=>`<div class="course" style="cursor:pointer" onclick="openStudentClass('${c.section_id}','${esc(c.course_code)}','${esc(c.section_code)}')"><h3>${esc(c.course_code)} — ${esc(c.course_name)}</h3><p><b>${esc(c.semester)}</b></p><p>Section: <span class="section">${esc(c.section_code)}</span></p><p class="small">Click to enter this class.</p></div>`).join("");
+ }catch(err){
+   console.error("ChemPoll My Classes error:",err);
+   el.innerHTML=`<div class="danger"><b>Could not load My Classes.</b><br>${esc(err.message||String(err))}</div>`;
+ }
+}
+
+sb.auth.onAuthStateChange((event,session)=>{ if(event==="SIGNED_OUT"){app.classList.add("hidden");studentApp.classList.add("hidden");loginCard.classList.remove("hidden");signupCard.classList.remove("hidden");} });
+init();
+</script></body></html>
